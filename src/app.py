@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from database import init_db_pool
+from database.db_utils import close_db_pool, init_db_pool
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from routers import stats
@@ -8,7 +8,7 @@ from routers import stats
 async def lifespan(app: FastAPI):
     await init_db_pool()
     yield
-    pass
+    await close_db_pool()
 
 app = FastAPI(lifespan=lifespan)
 
