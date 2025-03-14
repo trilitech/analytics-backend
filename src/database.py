@@ -2,6 +2,8 @@ import os
 import asyncpg
 from typing import Tuple, List, Dict, Any
 
+from utils.data_processor import fetch_non_time_series_data
+
 db_pool = None
 
 async def init_db_pool():
@@ -97,8 +99,7 @@ async def fetch_owner_actual_users(owner: str) -> Tuple[List[Dict[str, Any]], Ex
             ORDER BY 
                 month
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "total_users": row["total_users"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "owner_users", ["time", "total_users"], owner)
             return data, None
         except Exception as e:
             return None, e
@@ -114,8 +115,7 @@ async def fetch_owner_predicted_users(owner: str) -> Tuple[List[Dict[str, Any]],
               and month < current_date + interval '4 months'
               ORDER BY month ASC
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "forecast": row["users_goal"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "predicted_users", ["time", "forecast"], owner)
             return data, None
         except Exception as e:
             return None, e
@@ -124,15 +124,14 @@ async def fetch_owner_goals_users(owner: str) -> Tuple[List[Dict[str, Any]], Exc
     async with db_pool.acquire() as conn:
         try:
             query = """
-              SELECT month, CAST(users_forecast AS TEXT) as users_goal
+              SELECT month, CAST(users_goal AS TEXT) as users_goal
               FROM employee_targets et 
               WHERE UPPER(employee) = UPPER($1) 
               and month > current_date - INTERVAL '8 months'
               and month < current_date + interval '4 months'
               ORDER BY month ASC
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "target": row["users_goal"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "target_users", ["time", "target"], owner)
             return data, None
         except Exception as e:
             return None, e
@@ -154,11 +153,7 @@ async def fetch_owner_top_projects_users(owner: str) -> Tuple[List[Dict[str, Any
               and month = date_trunc('month', current_date - interval '1 month')
               ORDER BY user_count DESC;
             """
-            rows = await conn.fetch(query, owner)
-            data = [
-                {"Project": row["project"], "Active Wallets": row["user_count"], "Layer": row["layer"]}
-                for row in rows
-            ]
+            data = await fetch_non_time_series_data(conn, query, "owner_users_projects", ["Project", "Active Wallets", "Layer"], owner)
             return data, None
         except Exception as e:
             return None, e
@@ -186,8 +181,7 @@ async def fetch_owner_actual_tvl(owner: str) -> Tuple[List[Dict[str, Any]], Exce
               group by month
               order by month asc
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "actual": row["tvl_res"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "owner_tvl", ["time", "actual"], owner)
             return data, None
         except Exception as e:
             return None, e   
@@ -203,8 +197,7 @@ async def fetch_owner_predicted_tvl(owner: str) -> Tuple[List[Dict[str, Any]], E
               and month < current_date + interval '4 months'
               ORDER BY month ASC
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "forecast": row["tvl_goal"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "owner_predicted_tvl", ["time", "forecast"], owner)
             return data, None
         except Exception as e:
             return None, e 
@@ -220,8 +213,7 @@ async def fetch_owner_goals_tvl(owner: str) -> Tuple[List[Dict[str, Any]], Excep
               and month < current_date + interval '4 months'
               ORDER BY month ASC
             """
-            rows = await conn.fetch(query, owner)
-            data = [{"time": row["month"], "target": row["tvl_goal"]} for row in rows]
+            data = await fetch_non_time_series_data(conn, query, "owner_goal_tvl", ["time", "target"], owner)
             return data, None
         except Exception as e:
             return None, e 
@@ -250,11 +242,7 @@ async def fetch_owner_top_projects_tvl(owner: str) -> Tuple[List[Dict[str, Any]]
               group by month, project
               order by month asc, tvl_res desc;
             """
-            rows = await conn.fetch(query, owner)
-            data = [
-                {"time": row["month"], "TVL": row["tvl_res"], "project": row["project"]}
-                for row in rows
-            ]
+            data = await fetch_non_time_series_data(conn, query, "owner_project_tvl", ["time", "tvl_res", "project"], owner)
             return data, None
         except Exception as e:
             return None, e
