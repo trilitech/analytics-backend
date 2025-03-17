@@ -183,27 +183,3 @@ async def fetch_team_projects_users_split(department: str, conn) -> Tuple[List[D
         return data, None
     except Exception as e:
         return None, e
-
-async def fetch_top_projects_transactions() -> Tuple[List[Dict[str, Any]], Exception]:
-    async with db_pool.acquire() as conn:
-        try:
-            query = """
-            SELECT project, tx_count, layer 
-            FROM mv_etherlink_projects_transactions 
-            WHERE month = (SELECT MAX(month) FROM mv_etherlink_projects_transactions)
-            AND tx_count > 0
-            UNION ALL
-            SELECT project, tx_count, layer 
-            FROM mv_tzkt_projects_transactions
-            WHERE month = (SELECT MAX(month) FROM mv_tzkt_projects_transactions)
-            AND tx_count > 0
-            ORDER BY tx_count DESC
-            """
-            rows = await conn.fetch(query)
-            data = [
-                {"Project": row["project"], "Total Transactions": row["tx_count"], "Layer": row["layer"]}
-                for row in rows
-            ]
-            return data, None
-        except Exception as e:
-            return None, e
