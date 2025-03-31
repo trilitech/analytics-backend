@@ -210,7 +210,7 @@ async def get_top_projects_users(conn=Depends(get_db_conn)):
         return {"error": str(err)}
     return data
 
-@stats_router.get("/user_group_by_project")
+@stats_router.get("/tvl_group_by_project")
 async def get_top_projects_tvl(conn=Depends(get_db_conn)):
     data, err = await fetch_top_projects_tvl(conn)
     if err:
