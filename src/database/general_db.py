@@ -31,7 +31,7 @@ async def fetch_etherlink_users(conn) -> Tuple[List[Dict[str, Any]], Exception]:
         return data, None
     except Exception as e:
         return None, e
-
+    
 async def fetch_tzkt_users(conn) -> Tuple[List[Dict[str, Any]], Exception]:
     try:
         query = """
@@ -42,6 +42,26 @@ async def fetch_tzkt_users(conn) -> Tuple[List[Dict[str, Any]], Exception]:
     except Exception as e:
         return None, e
 
+async def fetch_bot_users(conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+          select * from mv_bot_wallets
+        """
+        data = await fetch_non_time_series_data(conn, query, "bot_users", ["time", "bot_users"])
+        return data, None
+    except Exception as e:
+        return None, e   
+
+async def fetch_bot_transactions(conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+          select date(month), transaction_count from mv_bot_transactions
+        """
+        data = await fetch_non_time_series_data(conn, query, "bot_transactions", ["time", "bot_transactions"])
+        return data, None
+    except Exception as e:
+        return None, e
+    
 async def fetch_etherlink_recurring_users(conn) -> Tuple[List[Dict[str, Any]], Exception]:
     try:
         query = """

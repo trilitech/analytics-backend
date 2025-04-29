@@ -1,6 +1,6 @@
 from database.db_utils import get_db_conn
 from database.defi_db import fetch_borrow_supply, fetch_borrow_supply_cap, fetch_max_slippage, fetch_slippage
-from database.general_db import fetch_etherlink_plus_one_users, fetch_etherlink_recurring_users, fetch_etherlink_transactions, fetch_etherlink_users, fetch_top_projects_transactions, fetch_top_projects_tvl, fetch_top_projects_users, fetch_tzkt_plus_one_users, fetch_tzkt_recurring_users, fetch_tzkt_transactions, fetch_tzkt_users
+from database.general_db import fetch_bot_transactions, fetch_bot_users, fetch_etherlink_plus_one_users, fetch_etherlink_recurring_users, fetch_etherlink_transactions, fetch_etherlink_users, fetch_top_projects_transactions, fetch_top_projects_tvl, fetch_top_projects_users, fetch_tzkt_plus_one_users, fetch_tzkt_recurring_users, fetch_tzkt_transactions, fetch_tzkt_users
 from database.team_db import fetch_team_etherlink_transactions, fetch_team_etherlink_users, fetch_team_goals_users, fetch_team_predicted_users, fetch_team_projects_transactions, fetch_team_projects_transactions_split, fetch_team_projects_users, fetch_team_projects_users_split, fetch_team_tzkt_transactions, fetch_team_tzkt_users, fetch_team_actual_users
 from database.individual_db import fetch_owner_actual_tvl, fetch_owner_predicted_tvl, fetch_owner_goals_tvl, fetch_owner_top_projects_tvl, fetch_owner_top_projects_users, fetch_owner_actual_users, fetch_owner_goals_users, fetch_owner_predicted_users
 from fastapi import Depends, Query, APIRouter
@@ -148,8 +148,15 @@ async def get_etherlink_transactions(conn=Depends(get_db_conn)):
     return data
 
 @stats_router.get("/tzkt_transactions")
-async def get_etherlink_transactions(conn=Depends(get_db_conn)):
+async def get_tzkt_transactions(conn=Depends(get_db_conn)):
     data, err = await fetch_tzkt_transactions(conn)
+    if err:
+        return {"error": str(err)}
+    return data
+
+@stats_router.get("/bot_transactions")
+async def get_bot_transactions(conn=Depends(get_db_conn)):
+    data, err = await fetch_bot_transactions(conn)
     if err:
         return {"error": str(err)}
     return data
@@ -157,6 +164,13 @@ async def get_etherlink_transactions(conn=Depends(get_db_conn)):
 @stats_router.get("/etherlink_users")
 async def get_etherlink_users(conn=Depends(get_db_conn)):
     data, err = await fetch_etherlink_users(conn)
+    if err:
+        return {"error": str(err)}
+    return data
+
+@stats_router.get("/bot_users")
+async def get_bot_users(conn=Depends(get_db_conn)):
+    data, err = await fetch_bot_users(conn)
     if err:
         return {"error": str(err)}
     return data
