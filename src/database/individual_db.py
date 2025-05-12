@@ -4,32 +4,47 @@ from typing import Tuple, List, Dict, Any
 async def fetch_owner_actual_users(owner: str, conn) -> Tuple[List[Dict[str, Any]], Exception]:
     try:
         query = """
-        SELECT 
-            month,
-            SUM(unique_users) AS total_users
-        FROM (
+            WITH date_range AS (
+                SELECT 
+                    DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month' * (n - 1) AS month
+                FROM 
+                    GENERATE_SERIES(2, 8) n  -- Last 8 months
+            ),
+            users AS (
+                SELECT 
+                    month,
+                    SUM(unique_users) AS total_users
+                FROM (
+                    SELECT 
+                        month,
+                        unique_users
+                    FROM 
+                        mv_etherlink_owner_users
+                    WHERE 
+                        UPPER(owner) = UPPER($1) 
+                        AND month > CURRENT_DATE - INTERVAL '8 months'
+                    UNION ALL
+                        SELECT 
+                            month,
+                            unique_users
+                        FROM 
+                            mv_tzkt_owner_users
+                        WHERE 
+                            UPPER("user") = UPPER($1) 
+                            AND month > CURRENT_DATE - INTERVAL '8 months'
+                ) combined_data
+                GROUP BY 
+                    month
+            )
             SELECT 
-                month,
-                unique_users
+                date(d.month) AS month,
+                COALESCE(du.total_users, 1) AS total_users
             FROM 
-                mv_etherlink_owner_users
-            WHERE 
-                UPPER(owner) = UPPER($1) 
-                AND month > current_date - INTERVAL '8 months'
-            UNION ALL
-            SELECT 
-                month,
-                unique_users
-            FROM 
-                mv_tzkt_owner_users m
-            WHERE 
-                UPPER(m.user) = UPPER($1) 
-                AND month > current_date - INTERVAL '8 months'
-        ) combined_data
-        GROUP BY 
-            month
-        ORDER BY 
-            month
+                date_range d
+            LEFT JOIN 
+                users du ON d.month = du.month
+            ORDER BY 
+                d.month asc;
         """
         data = await fetch_non_time_series_data(conn, query, "owner_users", ["time", "total_users"], owner)
         return data, None
@@ -39,7 +54,7 @@ async def fetch_owner_actual_users(owner: str, conn) -> Tuple[List[Dict[str, Any
 async def fetch_owner_predicted_users(owner: str, conn) -> Tuple[List[Dict[str, Any]], Exception]:
     try:
         query = """
-          SELECT month, CAST(users_forecast AS TEXT) as users_goal
+          SELECT date(month), CAST(users_forecast AS TEXT) as users_goal
           FROM employee_targets et 
           WHERE UPPER(employee) = UPPER($1) 
           and month > current_date - INTERVAL '8 months'
@@ -54,7 +69,7 @@ async def fetch_owner_predicted_users(owner: str, conn) -> Tuple[List[Dict[str, 
 async def fetch_owner_goals_users(owner: str, conn) -> Tuple[List[Dict[str, Any]], Exception]:
     try:
         query = """
-          SELECT month, CAST(users_goal AS TEXT) as users_goal
+          SELECT date(month), CAST(users_goal AS TEXT) as users_goal
           FROM employee_targets et 
           WHERE UPPER(employee) = UPPER($1) 
           and month > current_date - INTERVAL '8 months'
@@ -96,18 +111,23 @@ async def fetch_owner_actual_tvl(owner: str, conn) -> Tuple[List[Dict[str, Any]]
           FROM 
 	        GENERATE_SERIES(1, 7) n
           ORDER BY date
+          ),
+          tvl AS (
+            SELECT 
+              tvl.date,
+              SUM(tvl.tvl) AS tvl_sum
+            FROM tvl
+            JOIN project_owners po 
+              ON SPLIT_PART(po.project, ' ', 1) = SPLIT_PART(tvl.project_name, ' ', 1)
+            WHERE UPPER(po.owner) = UPPER($1)
+            GROUP BY tvl.date
           )
           SELECT 
-          date_trunc('month', tvl.date) as month,
-          sum(tvl) as tvl_res
+            DATE(DATE_TRUNC('month', t.date)) AS month,
+            COALESCE(et.tvl_sum, 1) AS tvl_res
           FROM last_day_tvl t
-          join tvl 
-          on tvl."date" = t.date
-          JOIN project_owners po
-          ON SPLIT_PART(po.project, ' ', 1) = SPLIT_PART(tvl.project_name, ' ', 1)
-          WHERE  upper(po."owner") = upper($1)
-          group by month
-          order by month asc
+          LEFT JOIN tvl et ON t.date = et.date
+          ORDER BY month ASC;
         """
         data = await fetch_non_time_series_data(conn, query, "owner_tvl", ["time", "actual"], owner)
         return data, None
