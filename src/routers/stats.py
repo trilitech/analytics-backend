@@ -3,6 +3,7 @@ from database.defi_db import fetch_borrow_supply, fetch_borrow_supply_cap, fetch
 from database.general_db import fetch_bot_transactions, fetch_bot_users, fetch_etherlink_plus_one_users, fetch_etherlink_recurring_users, fetch_etherlink_transactions, fetch_etherlink_users, fetch_top_projects_transactions, fetch_top_projects_tvl, fetch_top_projects_users, fetch_tzkt_plus_one_users, fetch_tzkt_recurring_users, fetch_tzkt_transactions, fetch_tzkt_users
 from database.team_db import fetch_team_etherlink_transactions, fetch_team_etherlink_users, fetch_team_goals_users, fetch_team_predicted_users, fetch_team_projects_transactions, fetch_team_projects_transactions_split, fetch_team_projects_users, fetch_team_projects_users_split, fetch_team_tzkt_transactions, fetch_team_tzkt_users, fetch_team_actual_users
 from database.individual_db import fetch_owner_actual_tvl, fetch_owner_predicted_tvl, fetch_owner_goals_tvl, fetch_owner_top_projects_tvl, fetch_owner_top_projects_users, fetch_owner_actual_users, fetch_owner_goals_users, fetch_owner_predicted_users
+from database.report_db import fetch_targets
 from fastapi import Depends, Query, APIRouter
 
 stats_router = APIRouter(prefix="/v1/stats")
@@ -255,6 +256,13 @@ async def get_supply_borrow(token: str = Query(..., description="Token"), conn=D
 @stats_router.get("/supply_borrow_cap")
 async def get_supply_borrow_cap(conn=Depends(get_db_conn)):
     data, err = await fetch_borrow_supply_cap(conn)
+    if err:
+        return {"error": str(err)}
+    return data
+
+@stats_router.get("/report_targets")
+async def get_report_targets(conn=Depends(get_db_conn)):
+    data, err = await fetch_targets(conn)
     if err:
         return {"error": str(err)}
     return data
