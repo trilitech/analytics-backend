@@ -37,7 +37,8 @@ async def fetch_targets(conn) -> Tuple[List[Dict[str, Any]], Exception]:
 	on et."month" = mtou."month" 
 	and et.employee = mtou."user" 
 	left outer join tvl on et.employee = tvl.owner
-	WHERE et."month" = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month');
+	WHERE et."month" = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+    order by employee_id;
         """
         data = await fetch_non_time_series_data(conn, query, "report", ["employee/vertical", "mau_target", "mau_actual", "mau_percentage", "tvl_target", "tvl actual", "tvl_percentage"])
         return data, None

@@ -191,4 +191,31 @@ async def fetch_owner_top_projects_tvl(owner: str, conn) -> Tuple[List[Dict[str,
         return data, None
     except Exception as e:
         return None, e
-        
+
+async def fetch_owner_projects_tvl_split_chain(owner: str, conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+          WITH last_day_tvl AS (
+          SELECT 
+	        (DATE_TRUNC('month', current_date) - INTERVAL '1 day') - INTERVAL '1 month' * (n - 1) AS date
+          FROM 
+	        GENERATE_SERIES(1, 7) n
+          ORDER BY date
+          )
+          SELECT 
+            date_trunc('month', tvl.date) as month,
+            sum(tvl) as tvl_res,
+            chain
+          FROM last_day_tvl t
+          join tvl 
+          on tvl."date" = t.date
+          JOIN project_owners po
+          ON SPLIT_PART(po.project, ' ', 1) = SPLIT_PART(tvl.project_name, ' ', 1)
+          WHERE  upper(po."owner") = upper($1)
+          group by month, chain
+          order by month asc, tvl_res desc;
+        """
+        data = await fetch_non_time_series_data(conn, query, "owner_project_tvl", ["time", "tvl_res", "chain"], owner)
+        return data, None
+    except Exception as e:
+        return None, e
