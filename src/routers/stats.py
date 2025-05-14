@@ -2,7 +2,7 @@ from database.db_utils import get_db_conn
 from database.defi_db import fetch_borrow_supply, fetch_borrow_supply_cap, fetch_max_slippage, fetch_slippage
 from database.general_db import fetch_bot_transactions, fetch_bot_users, fetch_etherlink_plus_one_users, fetch_etherlink_recurring_users, fetch_etherlink_transactions, fetch_etherlink_users, fetch_top_projects_transactions, fetch_top_projects_tvl, fetch_top_projects_users, fetch_tzkt_plus_one_users, fetch_tzkt_recurring_users, fetch_tzkt_transactions, fetch_tzkt_users
 from database.team_db import fetch_team_etherlink_transactions, fetch_team_etherlink_users, fetch_team_goals_users, fetch_team_predicted_users, fetch_team_projects_transactions, fetch_team_projects_transactions_split, fetch_team_projects_users, fetch_team_projects_users_split, fetch_team_tzkt_transactions, fetch_team_tzkt_users, fetch_team_actual_users
-from database.individual_db import fetch_owner_actual_tvl, fetch_owner_predicted_tvl, fetch_owner_goals_tvl, fetch_owner_top_projects_tvl, fetch_owner_top_projects_users, fetch_owner_actual_users, fetch_owner_goals_users, fetch_owner_predicted_users
+from database.individual_db import fetch_owner_actual_tvl, fetch_owner_predicted_tvl, fetch_owner_goals_tvl, fetch_owner_projects_tvl_split_chain, fetch_owner_top_projects_tvl, fetch_owner_top_projects_users, fetch_owner_actual_users, fetch_owner_goals_users, fetch_owner_predicted_users
 from database.report_db import fetch_targets
 from fastapi import Depends, Query, APIRouter
 
@@ -137,6 +137,13 @@ async def get_owner_goals_tvl(owner: str = Query(..., description="Owner name"),
 @stats_router.get("/owner_tvl_split")
 async def get_owner_tvl_split(owner: str = Query(..., description="Owner name"), conn=Depends(get_db_conn)):
     data, err = await fetch_owner_top_projects_tvl(owner, conn)
+    if err:
+        return {"error": str(err)}
+    return data
+
+@stats_router.get("/owner_tvl_split_chain")
+async def get_owner_tvl_split_chain(owner: str = Query(..., description="Owner name"), conn=Depends(get_db_conn)):
+    data, err = await fetch_owner_projects_tvl_split_chain(owner, conn)
     if err:
         return {"error": str(err)}
     return data
