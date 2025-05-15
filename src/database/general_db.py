@@ -162,3 +162,83 @@ async def fetch_top_projects_tvl(conn) -> Tuple[List[Dict[str, Any]], Exception]
         return data, None
     except Exception as e:
         return None, e
+
+async def fetch_total_tvl_etherlink(conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+            SELECT 
+                DATE_TRUNC('month', day) AS month,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    chain = 'Etherlink'
+                    AND date >= CURRENT_DATE - INTERVAL '12 months'
+                    and date < date_trunc('month', current_date)
+                GROUP BY DATE(date)
+            ) daily_sums
+            GROUP BY DATE_TRUNC('month', daily_sums.day)
+            UNION ALL
+            SELECT 
+                CURRENT_DATE - INTERVAL '30 days' AS period,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    chain = 'Etherlink'
+                    AND date >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY DATE(date)
+            )
+            order by month asc
+        """
+        data = await fetch_non_time_series_data(conn, query, "tvl", ["Month", "tvl2"])
+        return data, None
+    except Exception as e:
+        return None, e
+
+async def fetch_total_tvl_tezos(conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+            SELECT 
+                DATE_TRUNC('month', day) AS month,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    chain = 'Tezos'
+                    AND date >= CURRENT_DATE - INTERVAL '12 months'
+                    and date < date_trunc('month', current_date)
+                    and project_name not in ('KordFi', 'Flame DeFi', 'Matter Defi', 'Crunchy', 'Crunchy Liquid Staking', 'Gate-io', 'Latoken', 'Bitfinex')
+                GROUP BY DATE(date)
+            ) daily_sums
+            GROUP BY DATE_TRUNC('month', daily_sums.day)
+            UNION ALL
+            SELECT 
+                CURRENT_DATE - INTERVAL '30 days' AS period,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    chain = 'Tezos'
+                    AND date >= CURRENT_DATE - INTERVAL '30 days'
+                    and project_name not in ('KordFi', 'Flame DeFi', 'Matter Defi', 'Crunchy', 'Crunchy Liquid Staking', 'Gate-io', 'Latoken', 'Bitfinex')
+                GROUP BY DATE(date)
+            )
+            order by month asc
+        """
+        data = await fetch_non_time_series_data(conn, query, "tvl", ["Month", "tvl"])
+        return data, None
+    except Exception as e:
+        return None, e
