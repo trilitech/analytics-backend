@@ -242,3 +242,42 @@ async def fetch_total_tvl_tezos(conn) -> Tuple[List[Dict[str, Any]], Exception]:
         return data, None
     except Exception as e:
         return None, e
+
+async def fetch_total_tvl_tf(conn) -> Tuple[List[Dict[str, Any]], Exception]:
+    try:
+        query = """
+            SELECT 
+                DATE_TRUNC('month', day) AS month,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tf_tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    date >= CURRENT_DATE - INTERVAL '12 months'
+                    and date < date_trunc('month', current_date)
+                GROUP BY DATE(date)
+            ) daily_sums
+            where daily_total_tvl > 0
+            GROUP BY DATE_TRUNC('month', daily_sums.day)
+            UNION all
+            SELECT 
+                CURRENT_DATE - INTERVAL '30 days' AS period,
+                AVG(daily_total_tvl) AS avg_daily_total_tvl
+            FROM (
+                SELECT 
+                    DATE(date) AS day,
+                    SUM(tf_tvl) AS daily_total_tvl
+                FROM tvl
+                WHERE 
+                    date >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY DATE(date)
+            )
+            WHERE daily_total_tvl > 0
+            order by month asc
+        """
+        data = await fetch_non_time_series_data(conn, query, "tf", ["Month", "TF"])
+        return data, None
+    except Exception as e:
+        return None, e

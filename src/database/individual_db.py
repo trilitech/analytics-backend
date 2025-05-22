@@ -115,7 +115,8 @@ async def fetch_owner_actual_tvl(owner: str, conn) -> Tuple[List[Dict[str, Any]]
           tvl AS (
             SELECT 
               tvl.date,
-              SUM(tvl.tvl) AS tvl_sum
+              SUM(tvl.tvl) AS tvl_sum,
+              SUM(tvl.tf_tvl) as tf_tvl
             FROM tvl
             JOIN project_owners po 
               ON SPLIT_PART(po.project, ' ', 1) = SPLIT_PART(tvl.project_name, ' ', 1)
@@ -124,7 +125,7 @@ async def fetch_owner_actual_tvl(owner: str, conn) -> Tuple[List[Dict[str, Any]]
           )
           SELECT 
             DATE(DATE_TRUNC('month', t.date)) AS month,
-            COALESCE(et.tvl_sum, 1) AS tvl_res
+            COALESCE(et.tvl_sum - et.tf_tvl, 1) AS tvl_res
           FROM last_day_tvl t
           LEFT JOIN tvl et ON t.date = et.date
           ORDER BY month ASC;
@@ -176,7 +177,7 @@ async def fetch_owner_top_projects_tvl(owner: str, conn) -> Tuple[List[Dict[str,
           )
           SELECT 
             date_trunc('month', tvl.date) as month,
-            sum(tvl) as tvl_res,
+            sum(tvl - tf_tvl) as tvl_res,
             project
           FROM last_day_tvl t
           join tvl 
@@ -204,7 +205,7 @@ async def fetch_owner_projects_tvl_split_chain(owner: str, conn) -> Tuple[List[D
           )
           SELECT 
             date_trunc('month', tvl.date) as month,
-            sum(tvl) as tvl_res,
+            sum(tvl - tf_tvl) as tvl_res,
             chain
           FROM last_day_tvl t
           join tvl 

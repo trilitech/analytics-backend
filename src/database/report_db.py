@@ -6,7 +6,7 @@ async def fetch_targets(conn) -> Tuple[List[Dict[str, Any]], Exception]:
         query = """
             with tvl as (SELECT 
               tvl.date,
-              SUM(tvl.tvl) AS tvl_sum,
+              SUM(tvl.tvl  - tvl.tf_tvl) AS tvl_sum,
               po.owner
             FROM tvl
             JOIN project_owners po 
@@ -16,10 +16,10 @@ async def fetch_targets(conn) -> Tuple[List[Dict[str, Any]], Exception]:
 	select employee, 
 		users_goal, 
 		mv.unique_users + mtou.unique_users as mau_actuals, 
-		round((mv.unique_users + mtou.unique_users) * 100.0 / users_goal, 2) as percent_users,
+		TO_CHAR(ROUND((mv.unique_users + mtou.unique_users) * 100.0 / users_goal, 2), 'FM99999990.00') || '%' AS percent_users,
 		tvl_goal,
 		floor(tvl.tvl_sum) as tvl_actual,
-        ROUND(
+        TO_CHAR(ROUND(
             CAST(
                 tvl.tvl_sum * 100.0 / NULLIF(
                     CASE
@@ -28,7 +28,7 @@ async def fetch_targets(conn) -> Tuple[List[Dict[str, Any]], Exception]:
                         ELSE NULL
                     END, 0
                 ) AS numeric
-            ), 2) AS percent_tvl
+            ), 2), 'FM99999990.00') || '%' AS percent_tvl
 	from employee_targets et
 	left outer join mv_etherlink_owner_users mv
 	on et."month" = mv."month" 
