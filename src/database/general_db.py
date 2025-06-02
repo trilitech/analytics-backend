@@ -176,6 +176,7 @@ async def fetch_total_tvl_etherlink(conn) -> Tuple[List[Dict[str, Any]], Excepti
                 FROM tvl
                 WHERE 
                     chain = 'Etherlink'
+                    and category IS DISTINCT FROM 'RWA'
                     AND date >= CURRENT_DATE - INTERVAL '12 months'
                     and date < date_trunc('month', current_date)
                 GROUP BY DATE(date)
@@ -192,6 +193,7 @@ async def fetch_total_tvl_etherlink(conn) -> Tuple[List[Dict[str, Any]], Excepti
                 FROM tvl
                 WHERE 
                     chain = 'Etherlink'
+                    and category IS DISTINCT FROM 'RWA'
                     AND date >= CURRENT_DATE - INTERVAL '30 days'
                 GROUP BY DATE(date)
             )
