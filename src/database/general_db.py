@@ -172,7 +172,7 @@ async def fetch_total_tvl_etherlink(conn) -> Tuple[List[Dict[str, Any]], Excepti
             FROM (
                 SELECT 
                     DATE(date) AS day,
-                    SUM(tvl) AS daily_total_tvl
+                    SUM(tvl - tf_tvl) AS daily_total_tvl
                 FROM tvl
                 WHERE 
                     chain = 'Etherlink'
@@ -189,7 +189,7 @@ async def fetch_total_tvl_etherlink(conn) -> Tuple[List[Dict[str, Any]], Excepti
             FROM (
                 SELECT 
                     DATE(date) AS day,
-                    SUM(tvl) AS daily_total_tvl
+                    SUM(tvl - tf_tvl) AS daily_total_tvl
                 FROM tvl
                 WHERE 
                     chain = 'Etherlink'
