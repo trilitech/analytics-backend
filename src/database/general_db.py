@@ -213,7 +213,7 @@ async def fetch_total_tvl_tezos(conn) -> Tuple[List[Dict[str, Any]], Exception]:
             FROM (
                 SELECT 
                     DATE(date) AS day,
-                    SUM(tvl) AS daily_total_tvl
+                    SUM(tvl - tf_tvl) AS daily_total_tvl
                 FROM tvl
                 WHERE 
                     chain = 'Tezos'
@@ -230,7 +230,7 @@ async def fetch_total_tvl_tezos(conn) -> Tuple[List[Dict[str, Any]], Exception]:
             FROM (
                 SELECT 
                     DATE(date) AS day,
-                    SUM(tvl) AS daily_total_tvl
+                    SUM(tvl - tf_tvl) AS daily_total_tvl
                 FROM tvl
                 WHERE 
                     chain = 'Tezos'
@@ -259,6 +259,7 @@ async def fetch_total_tvl_tf(conn) -> Tuple[List[Dict[str, Any]], Exception]:
                 WHERE 
                     date >= CURRENT_DATE - INTERVAL '12 months'
                     and date < date_trunc('month', current_date)
+                    and project_name not in ('KordFi', 'Flame DeFi', 'Matter Defi', 'Crunchy', 'Crunchy Liquid Staking', 'Gate-io', 'Latoken', 'Bitfinex')
                 GROUP BY DATE(date)
             ) daily_sums
             where daily_total_tvl > 0
@@ -274,6 +275,7 @@ async def fetch_total_tvl_tf(conn) -> Tuple[List[Dict[str, Any]], Exception]:
                 FROM tvl
                 WHERE 
                     date >= CURRENT_DATE - INTERVAL '30 days'
+                    and project_name not in ('KordFi', 'Flame DeFi', 'Matter Defi', 'Crunchy', 'Crunchy Liquid Staking', 'Gate-io', 'Latoken', 'Bitfinex')
                 GROUP BY DATE(date)
             )
             WHERE daily_total_tvl > 0
